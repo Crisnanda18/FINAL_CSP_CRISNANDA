@@ -2,8 +2,12 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
+  const { pathname } = request.nextUrl
+
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
   })
 
   const supabase = createServerClient(
@@ -15,47 +19,40 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          response = NextResponse.next({
             request,
           })
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
+            response.cookies.set(name, value, options)
           )
         },
       },
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // Refresh session if expired
+  const { data: { user } } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
-
-  // Protected routes yang memerlukan authentication
+  //ini yang protected
   const protectedRoutes = ['/dashboard']
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route))
 
-  // Public routes yang tidak boleh diakses saat sudah login
+  // ini publics
   const authRoutes = ['/login', '/register']
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route))
 
-  // Jika user belum login dan mencoba akses protected route, redirect ke login
+  // logic kalau belum login redirect ulang ke login/registss
   if (!user && isProtectedRoute) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
   // Jika user sudah login dan mencoba akses login/register, redirect ke dashboard
   if (user && isAuthRoute) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard'
-    return NextResponse.redirect(redirectUrl)
+    return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  return supabaseResponse
+  return response
 }
 
 export const config = {

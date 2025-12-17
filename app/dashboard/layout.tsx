@@ -6,10 +6,15 @@ export default async function DashboardLayout({
 }: {
     children: React.ReactNode
 }) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    try {
+        const supabase = await createClient()
+        const { data: { user } } = await supabase.auth.getUser()
 
-    if (!user) {
+        if (!user) {
+            redirect('/login')
+        }
+    } catch (error) {
+        console.error('Auth check error:', error)
         redirect('/login')
     }
 

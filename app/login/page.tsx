@@ -17,7 +17,7 @@ export default function LoginPage() {
             setLoading(false)
         } else {
             setNotification({ msg: "Login Berhasil! Mengalihkan...", type: 'success' })
-            // Redirect dilakukan otomatis oleh Server Action handleLogin
+            // redirect dilakukan otomatis oleh Server Action handleLogin
         }
 
         setTimeout(() => setNotification(null), 3000)
